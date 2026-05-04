@@ -1,232 +1,454 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>HLB Census Editable Map</title>
-
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AP Census 2027 - HLB Layout Map Generator</title>
 <style>
-body { font-family: Arial; margin:10px; }
-h2 { text-align:center; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Arial", "Helvetica", sans-serif;
+    margin: 0;
+    background: #eef1f5;
+    color: #111;
+    font-size: 13px;
+  }
+  header.top {
+    background: #1a3d7c;
+    color: #fff;
+    text-align: center;
+    padding: 12px;
+    border-bottom: 4px solid #c0392b;
+  }
+  header.top h1 { margin: 0; font-size: 20px; letter-spacing: 1px; }
+  header.top p { margin: 4px 0 0; font-size: 13px; opacity: 0.95; }
 
-input {
-  border:none;
-  border-bottom:1px solid black;
-  width:140px;
-}
+  .app { display: flex; gap: 12px; padding: 12px; align-items: flex-start; }
+  .panel {
+    background: #fff; border: 1px solid #b5b5b5; border-radius: 4px;
+    padding: 12px; width: 300px; flex: 0 0 300px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .panel h3 {
+    margin: 0 0 8px; font-size: 13px; background: #1a3d7c; color: #fff;
+    padding: 6px 8px; border-radius: 3px;
+  }
+  .panel label { display: block; font-size: 11px; font-weight: bold; margin: 6px 0 2px; color: #333; }
+  .panel input {
+    width: 100%; padding: 5px 6px; font-size: 12px;
+    border: 1px solid #888; border-radius: 3px; font-family: inherit;
+  }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .btns { display: flex; gap: 6px; margin-top: 10px; }
+  .btns button {
+    flex: 1; padding: 8px; border: none; border-radius: 3px; cursor: pointer;
+    font-weight: bold; font-size: 12px; color: #fff;
+  }
+  .btn-gen { background: #1a7c3d; }
+  .btn-print { background: #c0392b; }
+  .btns button:hover { opacity: 0.9; }
 
-.main {
-  display:grid;
-  grid-template-columns: 300px 1fr;
-  gap:10px;
-}
+  .output { flex: 1; min-width: 0; }
+  .map-sheet {
+    background: #fff; border: 1px solid #999; padding: 16px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  }
+  .info-bar {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 0;
+    border: 1px solid #000; margin-bottom: 8px; font-size: 11px;
+  }
+  .info-bar div { padding: 4px 6px; border-right: 1px solid #000; }
+  .info-bar div:last-child { border-right: none; }
+  .info-bar b { color: #1a3d7c; }
 
-.left {
-  border:2px solid black;
-  padding:10px;
-  font-size:13px;
-}
+  .map-title { text-align: center; font-weight: bold; font-size: 14px; margin: 6px 0; }
 
-.map-area {
-  border:2px solid black;
-  padding:10px;
-  position:relative;
-}
+  /* Map area */
+  .map-area {
+    position: relative;
+    border: 3px solid #c0392b;
+    padding: 40px 50px 60px;
+    margin: 30px 10px 10px;
+    background: #fafafa;
+  }
+  .neighbor {
+    position: absolute; background: #fff; border: 1px solid #000;
+    padding: 2px 8px; font-weight: bold; font-size: 11px;
+  }
+  .n-top { top: -14px; left: 50%; transform: translateX(-50%); }
+  .n-bottom { bottom: -14px; left: 50%; transform: translateX(-50%); }
+  .n-left { left: -28px; top: 50%; transform: translateY(-50%) rotate(-90deg); }
+  .n-right { right: -28px; top: 50%; transform: translateY(-50%) rotate(90deg); }
+  .n-corner {
+    top: -14px; right: -14px; background: #ffeaa7; font-size: 10px;
+  }
+  .north {
+    position: absolute; top: -28px; left: -10px; font-weight: bold;
+    font-size: 14px; color: #c0392b; background: #fff; border: 1px solid #c0392b;
+    padding: 2px 6px; border-radius: 3px;
+  }
 
-.boundary {
-  border:2px solid red;
-  padding:20px;
-  position:relative;
-}
+  /* Internal road */
+  .internal-road {
+    position: absolute; top: 8px; bottom: 8px; left: 50%;
+    width: 28px; transform: translateX(-50%);
+    background: repeating-linear-gradient(
+      0deg, #d0d0d0, #d0d0d0 8px, #fff 8px, #fff 14px
+    );
+    border-left: 1px dashed #555; border-right: 1px dashed #555;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1;
+  }
+  .internal-road span {
+    writing-mode: vertical-rl; transform: rotate(180deg);
+    font-size: 10px; font-weight: bold; color: #333; letter-spacing: 2px;
+  }
 
-/* neighbors */
-.neighbor { position:absolute; font-weight:bold; }
-.n1 { top:-20px; left:45%; }
-.n2 { left:-35px; top:40%; }
-.n3 { bottom:-20px; left:40%; }
-.n4 { right:-35px; top:40%; }
-.n5 { top:10px; right:20px; }
+  /* Main approach road bottom */
+  .approach-road {
+    position: absolute; left: -3px; right: -3px; bottom: -38px;
+    height: 28px; background: #555; color: #fff; font-weight: bold;
+    text-align: center; line-height: 28px; font-size: 11px; letter-spacing: 1px;
+  }
+  .entry-exit {
+    position: absolute; bottom: -38px; left: 50%; transform: translateX(-50%);
+    background: #f1c40f; color: #000; padding: 2px 10px; font-size: 10px;
+    font-weight: bold; border: 1px solid #000; z-index: 2;
+  }
 
-.grid {
-  display:grid;
-  grid-template-columns: repeat(4, 160px);
-  gap:25px;
-  justify-content:center;
-}
+  .start-marker {
+    position: absolute; top: -10px; left: -10px; background: #c0392b; color: #fff;
+    padding: 2px 6px; font-size: 10px; font-weight: bold; border-radius: 3px;
+    z-index: 5;
+  }
 
-.building {
-  border:2px solid black;
-  padding:5px;
-  font-size:11px;
-  text-align:center;
-}
+  /* Buildings grid */
+  .buildings {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 60px;
+    position: relative;
+    z-index: 2;
+  }
+  .b-row {
+    display: grid; gap: 8px;
+  }
+  .b-row.left { grid-column: 1; }
+  .b-row.right { grid-column: 2; }
 
-.road {
-  position:absolute;
-  left:50%;
-  transform:translateX(-50%);
-  width:50px;
-  top:0;
-  bottom:0;
-  background:#eee;
-  writing-mode:vertical-rl;
-}
+  .building {
+    border: 2px solid #000; background: #fff; position: relative; padding: 4px;
+  }
+  .building .b-label {
+    background: #1a3d7c; color: #fff; text-align: center; font-weight: bold;
+    font-size: 11px; padding: 2px; margin-bottom: 3px;
+  }
+  .floor {
+    display: grid; gap: 1px; margin-bottom: 2px;
+  }
+  .floor-label {
+    font-size: 8px; font-weight: bold; color: #555; padding: 0 2px;
+  }
+  .houses {
+    display: grid; grid-template-columns: repeat(12, 1fr); gap: 1px;
+  }
+  .house {
+    background: #ecf0f1; border: 1px solid #999; font-size: 7px;
+    text-align: center; padding: 1px 0; min-height: 12px; line-height: 10px;
+  }
+  .b-total {
+    text-align: center; font-size: 9px; font-weight: bold; margin-top: 2px;
+    background: #f5e7a3; padding: 1px;
+  }
 
-.path {
-  position:absolute;
-  border:3px solid red;
-  border-radius:20px;
-  top:10px;
-  left:10px;
-  right:10px;
-  bottom:10px;
-}
+  /* Enumeration path arrows */
+  .path-svg {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 3;
+  }
 
-.start { color:red; font-weight:bold; }
+  /* Tables and summary */
+  .section { margin-top: 14px; }
+  .section h3 {
+    background: #1a3d7c; color: #fff; padding: 6px 8px; margin: 0 0 6px;
+    font-size: 13px; border-radius: 3px;
+  }
+  table.summary-tbl {
+    width: 100%; border-collapse: collapse; font-size: 11px;
+  }
+  table.summary-tbl th, table.summary-tbl td {
+    border: 1px solid #333; padding: 4px 6px; text-align: center;
+  }
+  table.summary-tbl th { background: #1a3d7c; color: #fff; }
+  table.summary-tbl tr:nth-child(even) td { background: #f4f6f8; }
 
-.entry {
-  position:absolute;
-  bottom:-35px;
-  left:45%;
-  color:blue;
-}
+  .summary-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center;
+  }
+  .summary-grid .card {
+    border: 1px solid #333; padding: 8px; background: #fff7d6;
+  }
+  .summary-grid .card b { display: block; font-size: 18px; color: #c0392b; }
 
-.north { position:absolute; right:10px; top:10px; }
+  .legend-notes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .legend ul, .notes ol { margin: 4px 0 0 18px; padding: 0; font-size: 11px; }
+  .legend li, .notes li { margin: 2px 0; }
+  .legend .swatch {
+    display: inline-block; width: 14px; height: 10px; vertical-align: middle;
+    margin-right: 4px; border: 1px solid #000;
+  }
 
-.table {
-  border:2px solid black;
-  margin-top:10px;
-}
-
-table { width:100%; border-collapse:collapse; }
-td, th { border:1px solid black; padding:4px; text-align:center; }
-
-button { margin:5px; padding:6px 12px; }
-
+  @media print {
+    body { background: #fff; font-size: 10px; }
+    header.top { padding: 6px; }
+    header.top h1 { font-size: 16px; }
+    .app { display: block; padding: 0; }
+    .panel { display: none; }
+    .map-sheet { box-shadow: none; border: none; padding: 6mm; }
+    @page { size: A4; margin: 8mm; }
+    .house { font-size: 6px; min-height: 10px; }
+  }
 </style>
 </head>
-
 <body>
 
-<h2>CENSUS OF INDIA 2027 – LAYOUT MAP</h2>
+<header class="top">
+  <h1>CENSUS OF INDIA 2027 – LAYOUT MAP</h1>
+  <p>Houselisting &amp; Housing Census</p>
+</header>
 
-<div class="main">
+<div class="app">
+  <aside class="panel">
+    <h3>Block Details</h3>
+    <label>State</label><input id="state" value="ANDHRA PRADESH" />
+    <label>District</label><input id="district" value="SPSR NELLORE" />
+    <label>Sub-District</label><input id="subdistrict" value="NELLORE RURAL" />
+    <label>Town / Village</label><input id="town" value="NELLORE" />
+    <div class="row2">
+      <div><label>Ward No.</label><input id="ward" value="12" /></div>
+      <div><label>HLB Block No.</label><input id="hlb" value="0271" /></div>
+    </div>
 
-<div class="left">
-State: <input id="state" value="ANDHRA PRADESH"><br><br>
-District: <input id="district" value="SPSR NELLORE"><br><br>
-Town: <input id="town" value="NELLORE"><br><br>
-HLB No: <input id="hlb" value="0271"><br><br>
+    <h3 style="margin-top:10px">Neighboring Blocks</h3>
+    <div class="row2">
+      <div><label>Top</label><input id="nTop" value="0272" /></div>
+      <div><label>Right</label><input id="nRight" value="0270" /></div>
+      <div><label>Bottom</label><input id="nBottom" value="0274 / 0275" /></div>
+      <div><label>Left</label><input id="nLeft" value="0273" /></div>
+      <div><label>Corner</label><input id="nCorner" value="0256" /></div>
+    </div>
 
-<b>Neighbors</b><br>
-Top: <input id="top" value="0272"><br>
-Left: <input id="leftN" value="0273"><br>
-Bottom: <input id="bottom" value="0274 / 0275"><br>
-Right: <input id="rightN" value="0270"><br>
-Corner: <input id="corner" value="0256">
+    <h3 style="margin-top:10px">Building Setup</h3>
+    <div class="row2">
+      <div><label># Buildings</label><input id="numB" type="number" value="8" min="2" max="20" /></div>
+      <div><label>Houses/Bldg</label><input id="hpb" type="number" value="48" min="1" /></div>
+    </div>
+    <label>Floors per Building</label><input id="floors" type="number" value="4" min="1" max="10" />
+
+    <div class="btns">
+      <button class="btn-gen" onclick="generate()">Generate Map</button>
+      <button class="btn-print" onclick="window.print()">Print Map</button>
+    </div>
+  </aside>
+
+  <main class="output">
+    <div class="map-sheet" id="sheet">
+      <div class="info-bar" id="infoBar"></div>
+      <div class="map-title" id="mapTitle"></div>
+
+      <div class="map-area" id="mapArea">
+        <div class="north">N ↑</div>
+        <div class="neighbor n-top" id="lblTop"></div>
+        <div class="neighbor n-bottom" id="lblBottom"></div>
+        <div class="neighbor n-left" id="lblLeft"></div>
+        <div class="neighbor n-right" id="lblRight"></div>
+        <div class="neighbor n-corner" id="lblCorner"></div>
+        <div class="start-marker">★ START (NW)</div>
+
+        <div class="internal-road"><span>INTERNAL ROAD</span></div>
+
+        <div class="buildings" id="buildings"></div>
+
+        <svg class="path-svg" id="pathSvg"></svg>
+
+        <div class="approach-road">MAIN APPROACH ROAD</div>
+        <div class="entry-exit">ENTRY / EXIT</div>
+      </div>
+
+      <div class="section">
+        <h3>Building-wise House Number Summary</h3>
+        <table class="summary-tbl" id="tbl"></table>
+      </div>
+
+      <div class="section">
+        <h3>Summary</h3>
+        <div class="summary-grid" id="summary"></div>
+      </div>
+
+      <div class="section">
+        <h3>Legend &amp; Notes</h3>
+        <div class="legend-notes">
+          <div class="legend">
+            <b>Legend</b>
+            <ul>
+              <li><span class="swatch" style="background:#fff;border:2px solid #000"></span> Building box</li>
+              <li><span class="swatch" style="background:repeating-linear-gradient(0deg,#d0d0d0,#d0d0d0 4px,#fff 4px,#fff 7px)"></span> Road / Path</li>
+              <li><span class="swatch" style="background:#c0392b"></span> Red arrow = Enumeration path</li>
+              <li>★ = Starting point (NW corner)</li>
+              <li><span class="swatch" style="background:#ffeaa7"></span> Corner block</li>
+            </ul>
+          </div>
+          <div class="notes">
+            <b>Enumeration Notes</b>
+            <ol>
+              <li>Start from the North-West corner.</li>
+              <li>Follow serpentine order across rows.</li>
+              <li>Enumerate floor-wise within each building.</li>
+              <li>Move left to right within each floor.</li>
+              <li>Do not miss any house — verify counts.</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
 </div>
-
-<div class="map-area">
-
-<div class="north">N ↑</div>
-
-<div class="boundary">
-
-<div class="neighbor n1" id="nTop"></div>
-<div class="neighbor n2" id="nLeft"></div>
-<div class="neighbor n3" id="nBottom"></div>
-<div class="neighbor n4" id="nRight"></div>
-<div class="neighbor n5" id="nCorner"></div>
-
-<div class="path"></div>
-
-<div class="start">★ START (NW)</div>
-
-<div class="road">INTERNAL ROAD</div>
-
-<div id="grid" class="grid"></div>
-
-<div class="entry">ENTRY / EXIT</div>
-
-</div>
-
-</div>
-
-</div>
-
-<div class="table">
-<table>
-<tr>
-<th>Building</th><th>Range</th><th>No</th>
-<th>Building</th><th>Range</th><th>No</th>
-</tr>
-<tbody id="tableData"></tbody>
-</table>
-</div>
-
-<button onclick="generate()">Generate</button>
-<button onclick="window.print()">Print</button>
 
 <script>
+function val(id){ return document.getElementById(id).value; }
+function el(id){ return document.getElementById(id); }
+
+function pad(n,w){ return String(n).padStart(w,'0'); }
+
 function generate(){
+  const numB = Math.max(2, parseInt(val('numB'))||8);
+  const hpb  = Math.max(1, parseInt(val('hpb'))||48);
+  const floors = Math.max(1, parseInt(val('floors'))||4);
+  const perFloor = Math.ceil(hpb / floors);
 
-let houses = 48;
-let order = ["B1","B2","B3","B4","B8","B7","B6","B5"];
+  // Info bar
+  el('infoBar').innerHTML = `
+    <div><b>State:</b> ${val('state')}</div>
+    <div><b>District:</b> ${val('district')}</div>
+    <div><b>Sub-District:</b> ${val('subdistrict')}</div>
+    <div><b>Town/Village:</b> ${val('town')}</div>
+    <div><b>Ward No.:</b> ${val('ward')}</div>
+    <div><b>HLB Block No.:</b> ${val('hlb')}</div>
+  `;
+  el('mapTitle').textContent = `HOUSELISTING BLOCK ${val('hlb')} — LAYOUT MAP`;
 
-let start = 1;
-let gridHTML="";
-let tableHTML="";
+  el('lblTop').textContent = 'Block ' + val('nTop');
+  el('lblBottom').textContent = 'Block ' + val('nBottom');
+  el('lblLeft').textContent = 'Block ' + val('nLeft');
+  el('lblRight').textContent = 'Block ' + val('nRight');
+  el('lblCorner').textContent = 'Corner ' + val('nCorner');
 
-for(let i=0;i<8;i++){
+  // Buildings serpentine: top row left->right (B1..Bhalf), bottom row right->left (Bhalf+1..numB)
+  const half = Math.ceil(numB/2);
+  const topOrder = [];   // indexes 1..half
+  const bottomOrder = []; // indexes half+1..numB displayed right->left
+  for(let i=1;i<=half;i++) topOrder.push(i);
+  for(let i=numB;i>half;i--) bottomOrder.push(i); // displayed left position holds the highest
 
-let end = start + houses -1;
+  const totalDigits = String(numB*hpb).length < 3 ? 3 : String(numB*hpb).length;
 
-let f1=start;
-let f2=start+12;
-let f3=start+24;
-let f4=start+36;
+  function buildBuildingHTML(bIndex){
+    const startNo = (bIndex-1)*hpb + 1;
+    let html = `<div class="building" data-b="${bIndex}">
+      <div class="b-label">B${bIndex} &nbsp; (${pad(startNo,totalDigits)}–${pad(startNo+hpb-1,totalDigits)})</div>`;
+    for(let f=floors; f>=1; f--){ // top floor displayed first
+      const fStart = startNo + (f-1)*perFloor;
+      const fEnd = Math.min(startNo + f*perFloor - 1, startNo + hpb - 1);
+      html += `<div class="floor">
+        <div class="floor-label">Floor ${f} (${pad(fStart,totalDigits)}-${pad(fEnd,totalDigits)})</div>
+        <div class="houses">`;
+      for(let h=fStart; h<=fEnd; h++){
+        html += `<div class="house">${pad(h,totalDigits)}</div>`;
+      }
+      html += `</div></div>`;
+    }
+    html += `<div class="b-total">Total Houses: ${hpb}</div></div>`;
+    return html;
+  }
 
-gridHTML += `
-<div class="building">
-<b>${order[i]}</b><br>
-4F: ${f4}-${f4+11}<br>
-3F: ${f3}-${f3+11}<br>
-2F: ${f2}-${f2+11}<br>
-1F: ${f1}-${f1+11}
-</div>
-`;
+  // Build two-column layout: left column = top row left half + bottom row left half stacked.
+  // Use grid: row1 col1..colN top buildings, row2 col1..colN bottom buildings (right->left order)
+  const cols = Math.max(topOrder.length, bottomOrder.length);
+  const grid = el('buildings');
+  grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  grid.style.gridTemplateRows = `auto auto`;
+  grid.style.gap = '10px 50px';
 
-if(i<4){
-tableHTML += `<tr>
-<td>${order[i]}</td><td>${start}-${end}</td><td>48</td>
-<td>${order[i+4]}</td><td>${end+1}-${end+48}</td><td>48</td>
-</tr>`;
+  let html = '';
+  // top row
+  topOrder.forEach((b,i)=>{
+    html += `<div style="grid-column:${i+1};grid-row:1">${buildBuildingHTML(b)}</div>`;
+  });
+  // bottom row (left position = highest building, serpentine)
+  bottomOrder.forEach((b,i)=>{
+    html += `<div style="grid-column:${i+1};grid-row:2">${buildBuildingHTML(b)}</div>`;
+  });
+  grid.innerHTML = html;
+
+  // Draw enumeration path SVG arrows after layout settles
+  setTimeout(drawPath, 50);
+
+  // Table
+  let trows = `<tr><th>Building</th><th>House Number Range</th><th>Number of Houses</th></tr>`;
+  for(let i=1;i<=numB;i++){
+    const s=(i-1)*hpb+1, e=i*hpb;
+    trows += `<tr><td><b>B${i}</b></td><td>${pad(s,totalDigits)} – ${pad(e,totalDigits)}</td><td>${hpb}</td></tr>`;
+  }
+  trows += `<tr style="background:#f5e7a3;font-weight:bold"><td>TOTAL</td><td>${pad(1,totalDigits)} – ${pad(numB*hpb,totalDigits)}</td><td>${numB*hpb}</td></tr>`;
+  el('tbl').innerHTML = trows;
+
+  // Summary
+  el('summary').innerHTML = `
+    <div class="card">Total Buildings<b>${numB}</b></div>
+    <div class="card">Houses per Building<b>${hpb}</b></div>
+    <div class="card">Total Houses<b>${numB*hpb}</b></div>
+  `;
 }
 
-start=end+1;
+function drawPath(){
+  const svg = el('pathSvg');
+  const area = el('mapArea');
+  const buildings = area.querySelectorAll('.building');
+  if(!buildings.length) return;
+  const ar = area.getBoundingClientRect();
+  svg.setAttribute('viewBox',`0 0 ${ar.width} ${ar.height}`);
+  svg.setAttribute('width', ar.width);
+  svg.setAttribute('height', ar.height);
+
+  // Order: by data-b ascending
+  const ordered = Array.from(buildings).sort((a,b)=>+a.dataset.b - +b.dataset.b);
+  const pts = ordered.map(b=>{
+    const r = b.getBoundingClientRect();
+    return { x: r.left - ar.left + r.width/2, y: r.top - ar.top + r.height/2 };
+  });
+
+  let svgInner = `
+    <defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#c0392b"/>
+      </marker>
+    </defs>`;
+  for(let i=0;i<pts.length-1;i++){
+    const a=pts[i], b=pts[i+1];
+    svgInner += `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#c0392b" stroke-width="2.5" stroke-dasharray="6,4" marker-end="url(#arr)" />`;
+  }
+  // Star at first
+  if(pts.length){
+    svgInner += `<circle cx="${pts[0].x}" cy="${pts[0].y}" r="9" fill="#c0392b"/>
+                 <text x="${pts[0].x}" y="${pts[0].y+4}" font-size="12" text-anchor="middle" fill="#fff" font-weight="bold">★</text>`;
+  }
+  svg.innerHTML = svgInner;
 }
 
-document.getElementById("grid").innerHTML=gridHTML;
-document.getElementById("tableData").innerHTML=tableHTML;
-
-/* neighbors */
-document.getElementById("nTop").innerText =
-document.getElementById("top").value;
-
-document.getElementById("nLeft").innerText =
-document.getElementById("leftN").value;
-
-document.getElementById("nBottom").innerText =
-document.getElementById("bottom").value;
-
-document.getElementById("nRight").innerText =
-document.getElementById("rightN").value;
-
-document.getElementById("nCorner").innerText =
-document.getElementById("corner").value;
-}
-
+// regenerate on input change
+document.querySelectorAll('.panel input').forEach(i=>i.addEventListener('input', generate));
+window.addEventListener('resize', drawPath);
 generate();
 </script>
-
 </body>
 </html>
