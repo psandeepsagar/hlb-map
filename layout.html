@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>HLB Census Editable Map</title>
+
+<style>
+body { font-family: Arial; margin:10px; }
+h2 { text-align:center; }
+
+input {
+  border:none;
+  border-bottom:1px solid black;
+  width:140px;
+}
+
+.main {
+  display:grid;
+  grid-template-columns: 300px 1fr;
+  gap:10px;
+}
+
+.left {
+  border:2px solid black;
+  padding:10px;
+  font-size:13px;
+}
+
+.map-area {
+  border:2px solid black;
+  padding:10px;
+  position:relative;
+}
+
+.boundary {
+  border:2px solid red;
+  padding:20px;
+  position:relative;
+}
+
+/* neighbors */
+.neighbor { position:absolute; font-weight:bold; }
+.n1 { top:-20px; left:45%; }
+.n2 { left:-35px; top:40%; }
+.n3 { bottom:-20px; left:40%; }
+.n4 { right:-35px; top:40%; }
+.n5 { top:10px; right:20px; }
+
+.grid {
+  display:grid;
+  grid-template-columns: repeat(4, 160px);
+  gap:25px;
+  justify-content:center;
+}
+
+.building {
+  border:2px solid black;
+  padding:5px;
+  font-size:11px;
+  text-align:center;
+}
+
+.road {
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  width:50px;
+  top:0;
+  bottom:0;
+  background:#eee;
+  writing-mode:vertical-rl;
+}
+
+.path {
+  position:absolute;
+  border:3px solid red;
+  border-radius:20px;
+  top:10px;
+  left:10px;
+  right:10px;
+  bottom:10px;
+}
+
+.start { color:red; font-weight:bold; }
+
+.entry {
+  position:absolute;
+  bottom:-35px;
+  left:45%;
+  color:blue;
+}
+
+.north { position:absolute; right:10px; top:10px; }
+
+.table {
+  border:2px solid black;
+  margin-top:10px;
+}
+
+table { width:100%; border-collapse:collapse; }
+td, th { border:1px solid black; padding:4px; text-align:center; }
+
+button { margin:5px; padding:6px 12px; }
+
+</style>
+</head>
+
+<body>
+
+<h2>CENSUS OF INDIA 2027 – LAYOUT MAP</h2>
+
+<div class="main">
+
+<div class="left">
+State: <input id="state" value="ANDHRA PRADESH"><br><br>
+District: <input id="district" value="SPSR NELLORE"><br><br>
+Town: <input id="town" value="NELLORE"><br><br>
+HLB No: <input id="hlb" value="0271"><br><br>
+
+<b>Neighbors</b><br>
+Top: <input id="top" value="0272"><br>
+Left: <input id="leftN" value="0273"><br>
+Bottom: <input id="bottom" value="0274 / 0275"><br>
+Right: <input id="rightN" value="0270"><br>
+Corner: <input id="corner" value="0256">
+</div>
+
+<div class="map-area">
+
+<div class="north">N ↑</div>
+
+<div class="boundary">
+
+<div class="neighbor n1" id="nTop"></div>
+<div class="neighbor n2" id="nLeft"></div>
+<div class="neighbor n3" id="nBottom"></div>
+<div class="neighbor n4" id="nRight"></div>
+<div class="neighbor n5" id="nCorner"></div>
+
+<div class="path"></div>
+
+<div class="start">★ START (NW)</div>
+
+<div class="road">INTERNAL ROAD</div>
+
+<div id="grid" class="grid"></div>
+
+<div class="entry">ENTRY / EXIT</div>
+
+</div>
+
+</div>
+
+</div>
+
+<div class="table">
+<table>
+<tr>
+<th>Building</th><th>Range</th><th>No</th>
+<th>Building</th><th>Range</th><th>No</th>
+</tr>
+<tbody id="tableData"></tbody>
+</table>
+</div>
+
+<button onclick="generate()">Generate</button>
+<button onclick="window.print()">Print</button>
+
+<script>
+function generate(){
+
+let houses = 48;
+let order = ["B1","B2","B3","B4","B8","B7","B6","B5"];
+
+let start = 1;
+let gridHTML="";
+let tableHTML="";
+
+for(let i=0;i<8;i++){
+
+let end = start + houses -1;
+
+let f1=start;
+let f2=start+12;
+let f3=start+24;
+let f4=start+36;
+
+gridHTML += `
+<div class="building">
+<b>${order[i]}</b><br>
+4F: ${f4}-${f4+11}<br>
+3F: ${f3}-${f3+11}<br>
+2F: ${f2}-${f2+11}<br>
+1F: ${f1}-${f1+11}
+</div>
+`;
+
+if(i<4){
+tableHTML += `<tr>
+<td>${order[i]}</td><td>${start}-${end}</td><td>48</td>
+<td>${order[i+4]}</td><td>${end+1}-${end+48}</td><td>48</td>
+</tr>`;
+}
+
+start=end+1;
+}
+
+document.getElementById("grid").innerHTML=gridHTML;
+document.getElementById("tableData").innerHTML=tableHTML;
+
+/* neighbors */
+document.getElementById("nTop").innerText =
+document.getElementById("top").value;
+
+document.getElementById("nLeft").innerText =
+document.getElementById("leftN").value;
+
+document.getElementById("nBottom").innerText =
+document.getElementById("bottom").value;
+
+document.getElementById("nRight").innerText =
+document.getElementById("rightN").value;
+
+document.getElementById("nCorner").innerText =
+document.getElementById("corner").value;
+}
+
+generate();
+</script>
+
+</body>
+</html>
